@@ -4,19 +4,21 @@
 
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
 
 class GenerateTrack:
     def __init__(self, filepath):
         self.filepath = filepath
-        self.df = None
+        self.dataFrame = None
     
     def load_data(self):
-        self.df = pd.read_csv(self.filepath)
+        if os.path.exists(self.filepath):
+            self.dataFrame = pd.read_csv(self.filepath)
     
     def plot_coordinates(self):
-        if self.df is not None:
+        if self.dataFrame is not None:
             plt.figure(figsize=(10, 10))
-            plt.scatter(x=self.df['Longitude'], y=self.df['Latitude'])
+            plt.scatter(x=self.dataFrame['Longitude'], y=self.dataFrame['Latitude'])
             plt.xlabel('Longitude')
             plt.ylabel('Latitude')
             plt.title('Track Map')
