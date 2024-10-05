@@ -36,4 +36,4 @@ def main():
 
 Track Analysis utilizes Matplotlib to plot the GPS data. 
 
-<img src="https://cdn.discordapp.com/attachments/1291227255065804800/1291227261785083964/image.png?ex=66fffd59&is=66feabd9&hm=23bd6c6a1714fc74d97fd36b619937c7537664341b9c6424c3a55a294456d2ac&" alt="State Diagram " width="400"/>
+<img src="https://cdn.discordapp.com/attachments/1288636548442493028/1292194261416149092/generateTrackUML.png?ex=6702d92f&is=670187af&hm=92ec9fc60d7a2c540833e43dd00d2f9e581e484e9ea716aa1f639716ba72e789&" alt="State Diagram " width="400"/>
