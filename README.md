@@ -6,14 +6,22 @@ This program can be used to parse drive day data and generate Track Maps from th
 ## Requirements 
  Python 3.x
 
-## Installation and Environment Setup
+## Installation and Running 
 Install the required libraries into the virtual environment. On Windows
 ```
-$ pip install -r ./requirements.txt
+pip install -r ./requirements.txt
 ```
 On UNIX/MacOS
 ```
-$ pip3 install -r ./requirements.txt
+pip3 install -r ./requirements.txt
+```
+To run the program on Windows 
+```
+py parsecsv.py
+```
+On UNIX/MacOS
+```
+python3 parsecsv.py
 ```
 
 ## Configuration and Execution
