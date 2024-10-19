@@ -5,7 +5,7 @@ def main():
     # runs method to generate Track Map
     plotter = GenerateTrack("driveday.csv")
     GenerateTrack.load_data(plotter)
-    GenerateTrack.plot_coordinates(plotter)
+    GenerateTrack.create_trackmap(plotter)
 
 if __name__ == "__main__":
     main()
