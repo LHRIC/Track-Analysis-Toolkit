@@ -3,7 +3,7 @@ from generateTrack import GenerateTrack
 
 def main(): 
     # runs method to generate Track Map
-    plotter = GenerateTrack("driveday.csv")
+    plotter = GenerateTrack("driveday.csv", "config.yaml")
     GenerateTrack.load_data(plotter)
     GenerateTrack.create_trackmap(plotter)
 
