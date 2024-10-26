@@ -9,23 +9,42 @@ import numpy as np
 import yaml
 
 class GenerateTrack:
-    def __init__(self, filepath, conflig_file):
+    def __init__(self, filepath, config_file):
         self.filepath = filepath
-        self.cfg = read_yaml(conflig_file)
+        self.cfg = None 
+        try: 
+            if not os.path.exists(config_file):
+                raise FileNotFoundError(f"Configuration file not found: {config_file}")
+            self.cfg = read_yaml(config_file)
+        except FileNotFoundError as e:
+            print(e)
         self.dataFrame = None
+       
 
     # loads in data from .csv file
     def load_data(self):
         if os.path.exists(self.filepath) and os.path.getsize(self.filepath) > 0:
             self.dataFrame = pd.read_csv(self.filepath)
-    
-    # checks for correct data fields before plotting 
+
+    # plots trackmap 
     def create_trackmap(self):
+        if self.dataFrame is not None:
+            plt.figure(figsize=(10, 10))
+            try: 
+                plt.scatter(x=self.dataFrame['Longitude'], y=self.dataFrame['Latitude'])
+                plt.xlabel('Longitude')
+                plt.ylabel('Latitude')
+                plt.title('Track Map')
+                plt.show()
+            except: 
+                print("Longitude and Latitude does not exist")
+    
+    # plots trackmap with velocity overlay
+    def create_velocity_trackmap(self):
         if self.dataFrame is not None:
             try: 
                 # using average front and average back wheel speed 
-                
-                f, axes = plt.subplots(nrows=2, ncols=1, sharex=True, sharey=True)  # Create 2 rows, 1 column
+                f, axes = plt.subplots(nrows=2, ncols=1, sharex=True, sharey=True)  
                 norm = plt.Normalize(-1.5, 1.5)
 
                 self.dataFrame['Average Front'] = (self.dataFrame[self.cfg['columns']['front_left']] + self.dataFrame[self.cfg['columns']['front_right']]) / 2
@@ -61,7 +80,46 @@ class GenerateTrack:
             except: 
                 print("Invalid data fields.")
 
-def read_yaml(file : str):
-    with open(file, 'r') as input: 
-        data = yaml.safe_load(input)
-    return data
+    # plots the GGV 
+    def create_GGV(self):
+        if self.dataFrame is not None:
+            try: 
+                columns = self.cfg.get('columns', {})
+                if not columns:
+                    raise ValueError("Missing 'columns' in configuration file.")
+
+                # Calculate the average wheel speed
+                self.dataFrame['Average'] = (
+                    self.dataFrame[columns['front_left']] + 
+                    self.dataFrame[columns['front_right']] + 
+                    self.dataFrame[columns['back_left']] + 
+                    self.dataFrame[columns['back_right']]
+                ) / 4
+
+                # Filter data based on range from YAML config
+                filter_config = self.cfg.get('filter', {})
+                min_avg = filter_config.get('min_average')
+                max_avg = filter_config.get('max_average')
+
+                if min_avg is None or max_avg is None:
+                    raise ValueError("Missing 'min_average' or 'max_average' in 'filter' configuration.")
+
+                filtered_df = self.dataFrame[(self.dataFrame['Average'] >= min_avg) & (self.dataFrame['Average'] <= max_avg)]
+
+                # Plot the filtered data
+                plt.scatter(
+                    filtered_df[columns['accel_y']] / 9.81, 
+                    filtered_df[columns['accel_x']] / 9.81, 
+                    c=filtered_df['Average'], 
+                    cmap='viridis'
+                )
+                plt.xlabel("Acceleration Y")
+                plt.ylabel("Acceleration X")
+                plt.colorbar(label="Average Wheel Speed")
+                plt.show()
+            except: 
+                print("Invalid data fields.")
+                
+def read_yaml(config_file):
+    with open(config_file, 'r') as file:
+        return yaml.safe_load(file)

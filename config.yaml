@@ -3,3 +3,9 @@ columns:
   front_right: "Front Right Wheel Speed"
   back_left: "Back Left Wheel Speed"
   back_right: "Back Right Wheel Speed"
+  accel_y: "VCU Acceleration Y"
+  accel_x: "VCU Acceleration X"
+
+filter:
+  min_average: -1.5
+  max_average: 1.5
