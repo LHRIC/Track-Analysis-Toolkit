@@ -3,13 +3,15 @@
 # have a function to take in IMU data to generate a GGV
 
 import pandas as pd
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt
 import os
 import numpy as np
+import yaml
 
 class GenerateTrack:
-    def __init__(self, filepath):
+    def __init__(self, filepath, conflig_file):
         self.filepath = filepath
+        self.cfg = read_yaml(conflig_file)
         self.dataFrame = None
 
     # loads in data from .csv file
@@ -26,8 +28,8 @@ class GenerateTrack:
                 f, axes = plt.subplots(nrows=2, ncols=1, sharex=True, sharey=True)  # Create 2 rows, 1 column
                 norm = plt.Normalize(-1.5, 1.5)
 
-                self.dataFrame['Average Front'] = (self.dataFrame['Front Left Wheel Speed'] + self.dataFrame['Front Right Wheel Speed'])/2
-                self.dataFrame['Average Back'] = (self.dataFrame['Back Left Wheel Speed'] + self.dataFrame['Back Right Wheel Speed'])/2
+                self.dataFrame['Average Front'] = (self.dataFrame[self.cfg['columns']['front_left']] + self.dataFrame[self.cfg['columns']['front_right']]) / 2
+                self.dataFrame['Average Back'] = (self.dataFrame[self.cfg['columns']['back_left']] + self.dataFrame[self.cfg['columns']['back_right']]) / 2
 
                 # First plot with the average of the front 2 wheel speeds 
                 sc1 = axes[0].scatter(self.dataFrame['Longitude'], self.dataFrame['Latitude'], c=self.dataFrame['Average Front'], marker='o', norm=norm)
@@ -58,3 +60,8 @@ class GenerateTrack:
 
             except: 
                 print("Invalid data fields.")
+
+def read_yaml(file : str):
+    with open(file, 'r') as input: 
+        data = yaml.safe_load(input)
+    return data

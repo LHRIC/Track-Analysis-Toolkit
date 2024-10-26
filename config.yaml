@@ -1,0 +1,5 @@
+columns:
+  front_left: "Front Left Wheel Speed"
+  front_right: "Front Right Wheel Speed"
+  back_left: "Back Left Wheel Speed"
+  back_right: "Back Right Wheel Speed"
