@@ -52,6 +52,7 @@ class GenerateTrack:
 
                     # Write the row
                     writer.writerow(data_dict)
+                return all_fieldnames
 
     def butter_lowpass_filter(dataFrame, data, cutoff, fs, order=5):
         nyq = 0.5 * fs
