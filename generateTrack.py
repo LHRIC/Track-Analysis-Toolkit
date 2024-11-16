@@ -6,32 +6,78 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import os
 import numpy as np
-import yaml
+import csv  
+from scipy.signal import butter, filtfilt
+import json
 
 class GenerateTrack:
-    def __init__(self, filepath, config_file):
+    def __init__(self, filepath):
         self.filepath = filepath
-        self.cfg = None 
-        try: 
-            if not os.path.exists(config_file):
-                raise FileNotFoundError(f"Configuration file not found: {config_file}")
-            self.cfg = read_yaml(config_file)
-        except FileNotFoundError as e:
-            print(e)
         self.dataFrame = None
-       
 
     # loads in data from .csv file
     def load_data(self):
         if os.path.exists(self.filepath) and os.path.getsize(self.filepath) > 0:
-            self.dataFrame = pd.read_csv(self.filepath)
+               with open(self.filepath, 'r') as file, open("output_data.csv", 'w', newline='') as csvfile:
+                # Prepare to collect all unique field names from the JSON data
+                all_fieldnames = set()
+
+                # First pass: Gather all keys across all JSON entries
+                for line in file:
+                    timestamp, json_data = line.split(':', 1)
+                    data_dict = json.loads(json_data.strip())
+                    all_fieldnames.update(data_dict.keys())
+
+                # Convert to a sorted list for consistent CSV header order
+                all_fieldnames.add("timestamp")  # Add 'timestamp' explicitly
+                all_fieldnames = sorted(all_fieldnames)
+                writer = csv.DictWriter(csvfile, fieldnames=all_fieldnames)
+                writer.writeheader()
+
+                # Second pass: Write the data rows
+                file.seek(0)  # Reset file pointer to the beginning
+                for line in file:
+                    timestamp, json_data = line.split(':', 1)
+                    data_dict = json.loads(json_data.strip())
+
+                    # Add the extracted timestamp
+                    data_dict['timestamp'] = data_dict['epoch']
+
+                    # Convert latitude and longitude for human readability if present
+                    if 'lat' in data_dict:
+                        # data_dict['lat'] = data_dict['lat'] - 303863204
+                        data_dict['lat'] = GenerateTrack.convert_geo(data_dict['lat'])
+                    if 'lon' in data_dict:
+                        data_dict['lon'] = GenerateTrack.convert_geo(data_dict['lon'])
+
+                    # Write the row
+                    writer.writerow(data_dict)
+
+    def butter_lowpass_filter(dataFrame, data, cutoff, fs, order=5):
+        nyq = 0.5 * fs
+        normal_cutoff = cutoff / nyq
+        # Design the filter
+        b, a = butter(order, normal_cutoff, btype='low', analog=False)
+        # Apply the filter
+        filtered = filtfilt(b, a, dataFrame[data])
+        return pd.Series(filtered, index= dataFrame.index)
+    
+
+  
+    def convert_geo(geo_int):
+        geo_str = str(geo_int)
+        if geo_int < 0:
+            return -float(geo_str[:3] + '.' + geo_str[3:])
+        return float(geo_str[:2] + '.' + geo_str[2:])
 
     # plots trackmap 
-    def create_trackmap(self):
-        if self.dataFrame is not None:
+    def create_trackmap():
+        dataFrame = pd.read_csv("output_data.csv")
+
+        if dataFrame is not None:
             plt.figure(figsize=(10, 10))
             try: 
-                plt.scatter(x=self.dataFrame['Longitude'], y=self.dataFrame['Latitude'])
+                plt.scatter(dataFrame['lon'], y = dataFrame['lat'])
                 plt.xlabel('Longitude')
                 plt.ylabel('Latitude')
                 plt.title('Track Map')
@@ -81,45 +127,37 @@ class GenerateTrack:
                 print("Invalid data fields.")
 
     # plots the GGV 
-    def create_GGV(self):
-        if self.dataFrame is not None:
+    def create_GGV():
+        fs = 20.0
+        cutoff = 0.75
+        
+        dataFrame = pd.read_csv("output_data.csv")
+
+        if dataFrame is not None:
             try: 
-                columns = self.cfg.get('columns', {})
-                if not columns:
-                    raise ValueError("Missing 'columns' in configuration file.")
-
-                # Calculate the average wheel speed
-                self.dataFrame['Average'] = (
-                    self.dataFrame[columns['front_left']] + 
-                    self.dataFrame[columns['front_right']] + 
-                    self.dataFrame[columns['back_left']] + 
-                    self.dataFrame[columns['back_right']]
-                ) / 4
-
-                # Filter data based on range from YAML config
-                filter_config = self.cfg.get('filter', {})
-                min_avg = filter_config.get('min_average')
-                max_avg = filter_config.get('max_average')
-
-                if min_avg is None or max_avg is None:
-                    raise ValueError("Missing 'min_average' or 'max_average' in 'filter' configuration.")
-
-                filtered_df = self.dataFrame[(self.dataFrame['Average'] >= min_avg) & (self.dataFrame['Average'] <= max_avg)]
-
+                dataFrame["lateral_accel"] = np.int16(dataFrame['cg_accel_x']) / 256.0 / 9.8
+                dataFrame["long_accel"] = np.int16(dataFrame['cg_accel_y']) / 256.0 / 9.8 
+                dataFrame["yaw_accel"] = np.int16(dataFrame['cg_accel_z']) / 256.0 / 9.8 
+                dataFrame['filtered_pressures_lateral'] = GenerateTrack.butter_lowpass_filter(dataFrame, "lateral_accel", cutoff, fs)
+                dataFrame['filtered_pressures_long'] = GenerateTrack.butter_lowpass_filter(dataFrame, "long_accel", cutoff, fs)
+                dataFrame['filtered_pressures_yaw'] = GenerateTrack.butter_lowpass_filter(dataFrame, "yaw_accel", cutoff, fs)
+                dataFrame.to_csv("output_data.csv", index=False)
                 # Plot the filtered data
-                plt.scatter(
-                    filtered_df[columns['accel_y']] / 9.81, 
-                    filtered_df[columns['accel_x']] / 9.81, 
-                    c=filtered_df['Average'], 
-                    cmap='viridis'
-                )
-                plt.xlabel("Acceleration Y")
-                plt.ylabel("Acceleration X")
-                plt.colorbar(label="Average Wheel Speed")
+                plt.plot(
+                    dataFrame['epoch'] - 1731130989,
+                    # dataFrame['filtered_pressures_lateral']
+                    dataFrame['filtered_pressures_long']
+                    )
+                plt.plot(dataFrame['epoch'] - 1731130989,
+                    # dataFrame['filtered_pressures_lateral']
+                    dataFrame['filtered_pressures_yaw'])
+                plt.plot(dataFrame['epoch'] - 1731130989,
+                    # dataFrame['filtered_pressures_lateral']
+                    dataFrame['filtered_pressures_lateral'])
+                plt.xlabel('Time (g)')
+                plt.ylabel('Lateral Acceleration (g)')
+                # plt.xlabel("Acceleration Y")
+                # plt.ylabel("Acceleration X")
                 plt.show()
             except: 
                 print("Invalid data fields.")
-                
-def read_yaml(config_file):
-    with open(config_file, 'r') as file:
-        return yaml.safe_load(file)

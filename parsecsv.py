@@ -3,14 +3,14 @@ from generateTrack import GenerateTrack
 
 def main(): 
     # runs method to generate Track Map
-    plotter = GenerateTrack("driveday.csv", "config.yaml")
+    plotter = GenerateTrack("drive_day1.txt")
     GenerateTrack.load_data(plotter)
     # plots trackmap 
-    GenerateTrack.create_trackmap(plotter)
+    GenerateTrack.create_trackmap()
     # # plots trackmap with velocity overlay
-    GenerateTrack.create_velocity_trackmap(plotter)
+    # GenerateTrack.create_velocity_trackmap(plotter)
     # plots GGV 
-    GenerateTrack.create_GGV(plotter)
+    GenerateTrack.create_GGV()
 
 if __name__ == "__main__":
     main()
